@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { ChangeEvent, ChangeEventHandler, useState } from "react"
 
 const App = () => {
   type Entry = {
@@ -33,9 +33,14 @@ const App = () => {
     beginEntry()
   }
 
+  const handleChangeDescription = (changedDescriptionEvent: ChangeEvent<HTMLInputElement>) => {
+    setDescription(changedDescriptionEvent.target.value)
+  }
+
   return (
     <>
       <button onClick={awaken}>Suddenly, I was awake.</button>
+      <input value={description} onChange={handleChangeDescription} />
       <button onClick={endEntry}>Close entry</button>
 
       <div>
