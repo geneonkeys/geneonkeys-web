@@ -48,3 +48,10 @@ export default tseslint.config({
   },
 })
 ```
+
+This is my creative coding space, accessible at geneonkeys.com
+
+Currently, it hosts the web application Logbook
+- Start a timer, unlock text input
+- Submit text input, lap the timer
+- Append an entry using start/end time, text, and time elapsed to a list
