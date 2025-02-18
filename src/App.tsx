@@ -7,6 +7,7 @@ const App = () => {
     description: string
   }
 
+  const [now, setNow] = useState(Date.now())
   const [suddenlyIWasAwake, setSuddenlyIWasAwake] = useState(false)
   const [entryList, setEntryList] = useState<Entry[]>([])
   const [startTime, setStartTime] = useState(0);
@@ -29,7 +30,12 @@ const App = () => {
   }
 
   const awaken = () => {
+    console.log('hello?')
     setSuddenlyIWasAwake(true)
+    setInterval(() => {
+      console.log('is this even working')
+      setNow(Date.now())
+    }, 100)
     beginEntry()
   }
 
@@ -39,9 +45,7 @@ const App = () => {
 
   return (
     <>
-      <button onClick={awaken}>Suddenly, I was awake.</button>
-      <input value={description} onChange={handleChangeDescription} />
-      <button onClick={endEntry}>Close entry</button>
+      {!suddenlyIWasAwake && <button onClick={awaken}>Suddenly, I was awake.</button>}
 
       <div>
         suddenlyIWasAwake: {JSON.stringify(suddenlyIWasAwake)}
@@ -55,6 +59,17 @@ const App = () => {
       <div>
         description: {JSON.stringify(description)}
       </div>
+      <ul>
+        {entryList.map((entry, i) => (
+          <li key={i}>
+            [{entry.elapsedTime}]: {entry.description}
+          </li>
+        ))}
+        <li>
+          [{(now - startTime)}]: <input value={description} onChange={handleChangeDescription} />
+        </li>
+      </ul>
+      {suddenlyIWasAwake && <button onClick={endEntry}>Close entry</button>}
 
       <div>hello</div>
       <div>This is my creative coding space, accessible at geneonkeys.com</div>
