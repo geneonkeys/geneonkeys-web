@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from "react"
+import { ChangeEvent, MouseEvent, useEffect, useState } from "react"
 
 enum LocalStorageKeys {
   ENTRY_LIST = "ENTRY_LIST"
@@ -40,7 +40,6 @@ const App = () => {
       }
       else {
         setEntryList([])
-        saveLocalStorageEntryList()
       }
     } catch (e) {
       console.log("Unable to load entry list from local storage.")
@@ -64,7 +63,9 @@ const App = () => {
     setDescription("")
   }
 
-  const endEntry = () => {
+  const endEntry = (event?: MouseEvent<HTMLButtonElement>) => {
+    event?.preventDefault()
+
     const elapsedTime = Date.now() - startTime
     const updatedEntries = [...entryList, {
       startTime,
@@ -87,13 +88,11 @@ const App = () => {
     setDescription(changedDescriptionEvent.target.value)
   }
 
-  const dev = () => {
-    console.log('Hello!')
-  }
-
   function handleSubmit(submitEvent: ChangeEvent<HTMLFormElement>) {
     submitEvent.preventDefault()
-    suddenlyIWasAwake && endEntry()
+    if (suddenlyIWasAwake) {
+      endEntry()
+    }
   }
 
   function rejectRequestDelete() {
@@ -108,19 +107,21 @@ const App = () => {
     <>
       <div>
         {!suddenlyIWasAwake && <button style={{ fontSize: 27 }} onClick={awaken}>Suddenly, I was awake.</button>}
+        {suddenlyIWasAwake && (
+          <>
+            <div>
+              <button onClick={saveLocalStorageEntryList}>Save Entry List to Local Storage</button>
+            </div>
+            <div>
+              <button onClick={loadLocalStorageEntryList}>Load Entry List Local Storage</button>
+            </div>
+            <div>
+              <button onClick={removeLocalStorageEntryList}>Remove Entry List from Local Storage</button>
+            </div>
+          </>
+        )}
       </div>
-      <div>
-        {/* <button onClick={dev}>HI!</button> */}
-      </div>
-      <div>
-        <button onClick={saveLocalStorageEntryList}>Save Entry List to Local Storage</button>
-      </div>
-      <div>
-        <button onClick={loadLocalStorageEntryList}>Load Entry List Local Storage</button>
-      </div>
-      <div>
-        <button onClick={removeLocalStorageEntryList}>Remove Entry List from Local Storage</button>
-      </div>
+
       <form onSubmit={handleSubmit}>
         <ul>
           {entryList.map((entry, i) => (
@@ -131,10 +132,10 @@ const App = () => {
           <li>
             [{suddenlyIWasAwake ? (now - startTime) : 0}]:
             <input value={description} onChange={handleChangeDescription} />
+            {suddenlyIWasAwake && <button onClick={endEntry}>LOG</button>}
           </li>
         </ul>
       </form>
-      {suddenlyIWasAwake && <button onClick={endEntry}>Close entry</button>}
 
       {isRequestDelete && !isRequestDeleteConfirm && (
         <>
