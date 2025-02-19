@@ -56,8 +56,7 @@ const App = () => {
   }
 
   function confirmRequestDelete() {
-    loadLocalStorageEntryList()
-    setIsRequestDeleteConfirm(true)
+    window.location.reload()
   }
 
   const beginEntry = () => {
@@ -93,20 +92,35 @@ const App = () => {
   }
 
   function handleSubmit(submitEvent: ChangeEvent<HTMLFormElement>) {
-    console.log('its handle submit isnt it')
     submitEvent.preventDefault()
-    endEntry()
+    suddenlyIWasAwake && endEntry()
+  }
+
+  function rejectRequestDelete() {
+    saveLocalStorageEntryList()
+    setIsRequestDelete(false)
+    setIsRequestDeleteConfirm(false)
   }
 
   useEffect(loadLocalStorageEntryList, [])
 
   return (
     <>
-      <button onClick={dev}>HI!</button>
-      <button onClick={saveLocalStorageEntryList}>Save Entry List to Local Storage</button>
-      <button onClick={loadLocalStorageEntryList}>Load Entry List Local Storage</button>
-      <button onClick={removeLocalStorageEntryList}>Remove Entry List from Local Storage</button>
-      {!suddenlyIWasAwake && <button onClick={awaken}>Suddenly, I was awake.</button>}
+      <div>
+        {!suddenlyIWasAwake && <button style={{ fontSize: 27 }} onClick={awaken}>Suddenly, I was awake.</button>}
+      </div>
+      <div>
+        {/* <button onClick={dev}>HI!</button> */}
+      </div>
+      <div>
+        <button onClick={saveLocalStorageEntryList}>Save Entry List to Local Storage</button>
+      </div>
+      <div>
+        <button onClick={loadLocalStorageEntryList}>Load Entry List Local Storage</button>
+      </div>
+      <div>
+        <button onClick={removeLocalStorageEntryList}>Remove Entry List from Local Storage</button>
+      </div>
       <form onSubmit={handleSubmit}>
         <ul>
           {entryList.map((entry, i) => (
@@ -115,7 +129,8 @@ const App = () => {
             </li>
           ))}
           <li>
-            [{(now - startTime)}]: <input value={description} onChange={handleChangeDescription} />
+            [{suddenlyIWasAwake ? (now - startTime) : 0}]:
+            <input value={description} onChange={handleChangeDescription} />
           </li>
         </ul>
       </form>
@@ -124,7 +139,7 @@ const App = () => {
       {isRequestDelete && !isRequestDeleteConfirm && (
         <>
           <div>Are you sure you want to remove this data?</div>
-          <button>YES</button><button>No</button>
+          <button onClick={confirmRequestDelete}>YES</button><button onClick={rejectRequestDelete}>No</button>
         </>
       )}
     </>
