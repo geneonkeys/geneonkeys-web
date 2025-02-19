@@ -28,8 +28,6 @@ const App = () => {
     }
   }
 
-
-
   const saveLocalStorageEntryList = useCallback((entries?: Entry[]) => {
     try {
       localStorage.setItem(LocalStorageKeys.ENTRY_LIST, JSON.stringify(entries ? entries : entryList))
@@ -46,16 +44,22 @@ const App = () => {
       const localStorageEntryExists = Boolean(localStorageEntryListString);
       const localStorageEntryListObject = localStorageEntryExists ? JSON.parse(localStorageEntryListString) : null
       if (Array.isArray(localStorageEntryListObject)) {
-        setEntryList(localStorageEntryListObject)
+        if (!(JSON.stringify(localStorageEntryListObject) == JSON.stringify(entryList))) {
+          setEntryList(localStorageEntryListObject)
+        }
         return;
       }
       else {
-        setEntryList([])
+        if (!(JSON.stringify([]) == JSON.stringify(entryList))) {
+          setEntryList([])
+        }
       }
     } catch (e) {
       console.log("Unable to load entry list from local storage.")
       console.log(e)
-      setEntryList([])
+      if (!(JSON.stringify([]) == JSON.stringify(entryList))) {
+        setEntryList([])
+      }
     }
   }
 
@@ -84,6 +88,9 @@ const App = () => {
       description,
       isSuddenlyAwakeEntry
     }]
+    if (JSON.stringify(updatedEntries) == JSON.stringify(entryList)) {
+      return
+    }
     setEntryList(updatedEntries)
     saveLocalStorageEntryList(updatedEntries)
     beginEntry()
@@ -118,11 +125,11 @@ const App = () => {
   }
 
   useEffect(beginAndEndAwakeEntry, [isFirstAwakeEntry, endEntry])
-  useEffect(loadLocalStorageEntryList, [endEntry])
+  useEffect(loadLocalStorageEntryList, [endEntry, entryList])
 
   return (
     <>
-      <h1>Score: {entryList.length}</h1>
+      {suddenlyIWasAwake !== 0 && <h1>Score: {entryList.length}</h1>}
       <div>
         {!suddenlyIWasAwake && <button style={{ fontSize: 27 }} onClick={awaken}>Suddenly, I was awake.</button>}
       </div>
