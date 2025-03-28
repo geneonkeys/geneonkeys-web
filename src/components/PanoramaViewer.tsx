@@ -4,7 +4,14 @@ import * as THREE from "three";
 import { useEffect, useState, useRef } from "react";
 
 const MAX_SOURCE_INDEX = 5;
-const SOURCES = [""];
+const SOURCES = [
+  "000 - Black Kitchen",
+  "005 - White Kitchen",
+  "001 - White Kitchen - 300f 5m",
+  "002 - White Kitchen - 300f 10m",
+  "003 - White Kitchen 1000f 30m",
+  "004 - Bath - 300f 5m",
+];
 
 interface PanoramaProps {
   onProgress: (progress: number) => void;
