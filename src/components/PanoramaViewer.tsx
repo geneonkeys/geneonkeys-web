@@ -5,13 +5,13 @@ import { useEffect, useState, useRef } from "react";
 
 const MAX_SOURCE_INDEX = 5;
 const SOURCES = [
-  "5387a829-aeec-42d8-bbd4-907c75aa98d2",
-  "000 - Black Kitchen",
-  "005 - White Kitchen",
-  "001 - White Kitchen - 300f 5m",
-  "002 - White Kitchen - 300f 10m",
-  "003 - White Kitchen 1000f 30m",
-  "004 - Bath - 300f 5m",
+  "SnowdenBridge_4048_360_Kitchen",
+  "SnowdenBridge_4048_360_PrimaryBath",
+  "South620_3403_360_Kitchen",
+  "WestParkIV_3611_360_Kitchen",
+  "WestParkIV_3611_360_PrimaryBath",
+  "WestParkIV_3612_360_Kitchen2",
+  "WestParkIV_3612_360_PrimaryBath",
 ];
 
 interface PanoramaProps {
@@ -50,7 +50,7 @@ function Panorama({ onProgress, sourceIndex }: PanoramaProps) {
     const textureLoader = new THREE.TextureLoader();
 
     textureLoader.load(
-      sourceIndex == 0 ? `5387a829-aeec-42d8-bbd4-907c75aa98d2.jpg` : `${SOURCES[sourceIndex]}.png`,
+      `${SOURCES[sourceIndex]}.jpg`,
       (loadedTexture) => {
         loadedTexture.colorSpace = THREE.SRGBColorSpace;
         loadedTexture.mapping = THREE.EquirectangularReflectionMapping;
@@ -173,7 +173,7 @@ export default function PanoramaViewer() {
       <button onClick={handleNextSourceIndex}>
         {`[ ${sourceIndex + 1} / ${MAX_SOURCE_INDEX + 1} ] ${SOURCES[
           sourceIndex
-        ].substring(6)}`}
+        ]}`}
       </button>
       {showProgress && (
         <div
@@ -197,7 +197,7 @@ export default function PanoramaViewer() {
             minWidth: "100px",
           }}
         >
-          <div>Loading: {loadProgress}%</div>
+          {/* <div>Loading: {loadProgress}%</div> */}
           <div
             style={{
               width: "100%",
