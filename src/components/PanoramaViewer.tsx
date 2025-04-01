@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react";
 
 const MAX_SOURCE_INDEX = 5;
 const SOURCES = [
+  "5387a829-aeec-42d8-bbd4-907c75aa98d2",
   "000 - Black Kitchen",
   "005 - White Kitchen",
   "001 - White Kitchen - 300f 5m",
@@ -49,7 +50,7 @@ function Panorama({ onProgress, sourceIndex }: PanoramaProps) {
     const textureLoader = new THREE.TextureLoader();
 
     textureLoader.load(
-      `${SOURCES[sourceIndex]}.png`,
+      sourceIndex == 0 ? `5387a829-aeec-42d8-bbd4-907c75aa98d2.jpg` : `${SOURCES[sourceIndex]}.png`,
       (loadedTexture) => {
         loadedTexture.colorSpace = THREE.SRGBColorSpace;
         loadedTexture.mapping = THREE.EquirectangularReflectionMapping;
