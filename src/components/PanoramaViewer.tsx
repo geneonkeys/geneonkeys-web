@@ -66,7 +66,7 @@ function Panorama({ onProgress, sourceIndex }: PanoramaProps) {
         }
       },
       (error) => {
-        console.error("Error loading texture:", error);
+        console.error("Error loading textures:", error);
         onProgress(100);
       }
     );
