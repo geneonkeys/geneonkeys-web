@@ -78,7 +78,7 @@ function Panorama({ onProgress, sourceIndex }: PanoramaProps) {
         texture.dispose();
       }
     };
-  }, [onProgress, sourceIndex]);
+  }, [onProgress, sourceIndex, texture]);
 
   return (
     <>
@@ -126,6 +126,7 @@ export default function PanoramaViewer() {
   const [sourceIndex, setSourceIndex] = useState(0);
   const [loadProgress, setLoadProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(true);
+  console.log(loadProgress, showProgress);
   const containerRef = useRef<HTMLDivElement>(null);
   const { width, height } = useFullScreenSize();
   function handleNextSourceIndex() {
@@ -176,7 +177,7 @@ export default function PanoramaViewer() {
           sourceIndex
         ]}`}
       </button>
-      
+
       <Canvas
         camera={{
           position: [0, 0, 0],
