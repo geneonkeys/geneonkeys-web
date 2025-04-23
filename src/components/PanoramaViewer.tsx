@@ -3,16 +3,17 @@ import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useEffect, useState, useRef } from "react";
 
-const MAX_SOURCE_INDEX = 5;
 const SOURCES = [
-  "SnowdenBridge_4048_360_Kitchen",
-  "SnowdenBridge_4048_360_PrimaryBath",
-  "South620_3403_360_Kitchen",
-  "WestParkIV_3611_360_Kitchen",
-  "WestParkIV_3611_360_PrimaryBath",
-  "WestParkIV_3612_360_Kitchen2",
-  "WestParkIV_3612_360_PrimaryBath",
+  "Ashberry_Tyler20-R2_Homesite98_Bath2_360",
+  "Ashberry_Tyler20-R2_Homesite98_Bath3_360",
+  "Ashberry_Tyler20-R2_Homesite98_Bed2_360",
+  "Ashberry_Tyler20-R2_Homesite98_Bed3_360",
+  "Ashberry_Tyler20-R2_Homesite98_Dining_360",
+  "Ashberry_Tyler20-R2_Homesite98_Great_360",
+  "Ashberry_Tyler20-R2_Homesite98_Kitchen_360",
+  "Ashberry_Tyler20-R2_Homesite98_PrimaryBath_360",
 ];
+const SOURCE_LENGTH = SOURCES.length, SOURCE_LAST_INDEX = SOURCE_LENGTH - 1;
 
 interface PanoramaProps {
   onProgress: (progress: number) => void;
@@ -50,7 +51,7 @@ function Panorama({ onProgress, sourceIndex }: PanoramaProps) {
     const textureLoader = new THREE.TextureLoader();
 
     textureLoader.load(
-      `${SOURCES[sourceIndex]}.jpg`,
+      `${SOURCES[sourceIndex]}.jpeg`,
       (loadedTexture) => {
         loadedTexture.colorSpace = THREE.SRGBColorSpace;
         loadedTexture.mapping = THREE.EquirectangularReflectionMapping;
@@ -128,7 +129,7 @@ export default function PanoramaViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { width, height } = useFullScreenSize();
   function handleNextSourceIndex() {
-    if (sourceIndex != MAX_SOURCE_INDEX) {
+    if (sourceIndex != SOURCE_LAST_INDEX) {
       const currentSourceIndex = sourceIndex;
       setSourceIndex(currentSourceIndex + 1);
     } else {
@@ -171,55 +172,11 @@ export default function PanoramaViewer() {
       }}
     >
       <button onClick={handleNextSourceIndex}>
-        {`[ ${sourceIndex + 1} / ${MAX_SOURCE_INDEX + 1} ] ${SOURCES[
+        {`[ ${sourceIndex + 1} / ${SOURCE_LENGTH} ] ${SOURCES[
           sourceIndex
         ]}`}
       </button>
-      {showProgress && (
-        <div
-          style={{
-            position: "absolute",
-            top: "10px",
-            right: "10px",
-            background: "rgba(0, 0, 0, 0.7)",
-            color: "white",
-            padding: "8px 12px",
-            borderRadius: "4px",
-            zIndex: 1000,
-            fontFamily: "Arial, sans-serif",
-            fontSize: "16px",
-            transition: "opacity 0.5s ease",
-            opacity: loadProgress === 100 ? 0.7 : 1,
-            boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            minWidth: "100px",
-          }}
-        >
-          {/* <div>Loading: {loadProgress}%</div> */}
-          <div
-            style={{
-              width: "100%",
-              height: "4px",
-              backgroundColor: "rgba(255,255,255,0.3)",
-              borderRadius: "2px",
-              marginTop: "5px",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                height: "100%",
-                width: `${loadProgress}%`,
-                backgroundColor: "white",
-                transition: "width 0.3s ease-out",
-              }}
-            />
-          </div>
-        </div>
-      )}
-
+      
       <Canvas
         camera={{
           position: [0, 0, 0],
