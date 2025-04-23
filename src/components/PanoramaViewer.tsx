@@ -72,13 +72,7 @@ function Panorama({ onProgress, sourceIndex }: PanoramaProps) {
         onProgress(100);
       }
     );
-
-    return () => {
-      if (texture) {
-        texture.dispose();
-      }
-    };
-  }, [onProgress, sourceIndex, texture]);
+  }, [onProgress, sourceIndex]);
 
   return (
     <>
@@ -126,7 +120,6 @@ export default function PanoramaViewer() {
   const [sourceIndex, setSourceIndex] = useState(0);
   const [loadProgress, setLoadProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(true);
-  console.log(loadProgress, showProgress);
   const containerRef = useRef<HTMLDivElement>(null);
   const { width, height } = useFullScreenSize();
   function handleNextSourceIndex() {
@@ -137,6 +130,8 @@ export default function PanoramaViewer() {
       setSourceIndex(0);
     }
   }
+
+  useEffect(() => { }, [loadProgress, showProgress])
 
   // Force the container to be full screen
   useEffect(() => {
@@ -199,9 +194,6 @@ export default function PanoramaViewer() {
         onCreated={({ gl }) => {
           // Force the renderer to use the full window size
           gl.setSize(width, height);
-
-          // Log the size to verify
-          console.log("Canvas initialized with size:", width, "x", height);
         }}
       >
         <PanoramaControls />
