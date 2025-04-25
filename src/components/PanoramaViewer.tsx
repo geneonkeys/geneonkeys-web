@@ -1,7 +1,23 @@
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
-import { OrbitControls, Html } from "@react-three/drei";
+import { OrbitControls, Html, DeviceOrientationControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useEffect, useState, useRef } from "react";
+
+// Add these type declarations at the top of the file, after the imports
+// interface DeviceOrientationEventiOS extends DeviceOrientationEvent {
+//   requestPermission?: () => Promise<PermissionState>;
+// }
+
+interface DeviceOrientationEventStatic extends EventTarget {
+  requestPermission?: () => Promise<PermissionState>;
+}
+
+// Extend the window interface to include our typed DeviceOrientationEvent
+declare global {
+  interface Window {
+    DeviceOrientationEvent: DeviceOrientationEventStatic;
+  }
+}
 
 const SOURCES = [
   "Ashberry_Tyler20-R2_Homesite98_Bath2_360",
@@ -14,21 +30,59 @@ const SOURCES = [
   "Ashberry_Tyler20-R2_Homesite98_PrimaryBath_360",
 ];
 
-// Function to generate random positions for nodes
 function generateRandomPositions() {
   return SOURCES.map(() => {
-    // Generate random spherical coordinates
-    const phi = Math.random() * Math.PI * 2; // Random angle around Y axis (0 to 2π)
-    const theta = Math.random() * Math.PI; // Random angle from top to bottom (0 to π)
-    const radius = 3 + Math.random() * 2; // Random distance (3 to 5)
+    const phi = Math.random() * Math.PI * 2;
+    const theta = Math.random() * Math.PI;
+    const radius = 3 + Math.random() * 2;
 
-    // Convert spherical to cartesian coordinates
     const x = radius * Math.sin(theta) * Math.cos(phi);
     const y = radius * Math.sin(theta) * Math.sin(phi);
     const z = radius * Math.cos(theta);
 
     return [x, y, z] as [number, number, number];
   });
+}
+
+// Custom hook to check if device orientation is available
+function useDeviceOrientationAvailable() {
+  const [available, setAvailable] = useState(false);
+  const [permissionState, setPermissionState] = useState<PermissionState | null>(null);
+
+  useEffect(() => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+    
+    if (window.DeviceOrientationEvent && isMobile) {
+      if (typeof (window.DeviceOrientationEvent).requestPermission === "function") {
+        setAvailable(true);
+        if (permissionState === "granted") {
+          setAvailable(true);
+        }
+      } else {
+        setAvailable(true);
+      }
+    } else {
+      setAvailable(false);
+    }
+  }, [permissionState]);
+
+  const requestPermission = async () => {
+    if (typeof (window.DeviceOrientationEvent).requestPermission === "function") {
+      try {
+        const permission = await (window.DeviceOrientationEvent).requestPermission();
+        setPermissionState(permission);
+        return permission === "granted";
+      } catch (error) {
+        console.error("Error requesting device orientation permission:", error);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  return { available, requestPermission, permissionState };
 }
 
 interface PanoramaProps {
@@ -50,14 +104,12 @@ function NavigationNode({ position, name, index, currentIndex, previousIndex, on
   const [hovered, setHovered] = useState(false);
   const sphereRef = useRef<THREE.Mesh>(null);
 
-  // Determine node color based on its state
   const getNodeColor = () => {
-    if (index === currentIndex) return "#4CAF50"; // Current node - green
-    if (index === previousIndex) return "#FFC107"; // Previous node - amber
-    return "#2196F3"; // Other nodes - blue
+    if (index === currentIndex) return "#4CAF50";
+    if (index === previousIndex) return "#FFC107";
+    return "#2196F3";
   };
 
-  // Pulse animation for the current node
   useFrame(({ clock }) => {
     if (sphereRef.current && index === currentIndex) {
       const scale = 1 + Math.sin(clock.getElapsedTime() * 2) * 0.1;
@@ -101,10 +153,22 @@ function NavigationNode({ position, name, index, currentIndex, previousIndex, on
 
 function PanoramaControls() {
   const { camera } = useThree();
+  const [usingDeviceOrientation, setUsingDeviceOrientation] = useState(false);
+  const { available, permissionState } = useDeviceOrientationAvailable();
 
   useEffect(() => {
     camera.lookAt(0, 0, -1);
   }, [camera]);
+
+  useEffect(() => {
+    if (available && permissionState === "granted") {
+      setUsingDeviceOrientation(true);
+    }
+  }, [available, permissionState]);
+
+  if (usingDeviceOrientation) {
+    return <DeviceOrientationControls />;
+  }
 
   return (
     <OrbitControls
@@ -201,7 +265,6 @@ function NavigationNodes({
   );
 }
 
-// Custom hook to handle full screen sizing
 function useFullScreenSize() {
   const [size, setSize] = useState({
     width: window.innerWidth,
@@ -216,13 +279,9 @@ function useFullScreenSize() {
       });
     };
 
-    // Set initial size
     handleResize();
-
-    // Add resize listener
     window.addEventListener("resize", handleResize);
 
-    // Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
     };
@@ -238,20 +297,34 @@ export default function PanoramaViewer() {
   const [showProgress, setShowProgress] = useState(true);
   const [brightnessPercent, setBrightnessPercent] = useState(100);
   const [nodePositions, setNodePositions] = useState<[number, number, number][]>(generateRandomPositions());
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { width, height } = useFullScreenSize();
+  const { available, requestPermission, permissionState } = useDeviceOrientationAvailable();
 
-  // Convert brightness percentage to actual brightness value (capped at 1.8)
   const MAX_BRIGHTNESS = 1.8;
   const MIN_BRIGHTNESS = 0.8;
   const brightness = MIN_BRIGHTNESS + (brightnessPercent / 100) * (MAX_BRIGHTNESS - MIN_BRIGHTNESS);
+
+  useEffect(() => {
+    if (available && permissionState !== "granted") {
+      setShowPermissionPrompt(true);
+    } else {
+      setShowPermissionPrompt(false);
+    }
+  }, [available, permissionState]);
+
+  const handleRequestPermission = async () => {
+    const granted = await requestPermission();
+    if (granted) {
+      setShowPermissionPrompt(false);
+    }
+  };
 
   function handleSelectNode(index: number) {
     setPreviousIndex(sourceIndex);
     setSourceIndex(index);
     setShowProgress(true);
-
-    // Generate new random positions for all nodes
     setNodePositions(generateRandomPositions());
   }
 
@@ -259,19 +332,15 @@ export default function PanoramaViewer() {
     setBrightnessPercent(parseInt(e.target.value));
   }
 
-  useEffect(() => { }, [loadProgress, showProgress])
-
-  // Force the container to be full screen
   useEffect(() => {
     if (containerRef.current) {
-      // Apply styles to make container full screen
       const container = containerRef.current;
       container.style.position = "fixed";
       container.style.top = "0";
       container.style.left = "0";
       container.style.width = "100vw";
       container.style.height = "100vh";
-      container.style.zIndex = "1000"; // Ensure it's above other content
+      container.style.zIndex = "1000";
     }
   }, []);
 
@@ -292,7 +361,7 @@ export default function PanoramaViewer() {
         top: 0,
         left: 0,
         overflow: "hidden",
-        boxSizing: "border-box", // Ensure borders don't affect dimensions
+        boxSizing: "border-box",
       }}
     >
       <div style={{
@@ -363,6 +432,54 @@ export default function PanoramaViewer() {
         </div>
       )}
 
+      {showPermissionPrompt && (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "rgba(0,0,0,0.8)",
+          color: "white",
+          padding: "20px",
+          borderRadius: "8px",
+          zIndex: 1003,
+          textAlign: "center",
+          maxWidth: "80%"
+        }}>
+          <h3>Enable Gyroscopic Controls?</h3>
+          <p>Allow access to device orientation to look around by moving your phone.</p>
+          <button 
+            onClick={handleRequestPermission}
+            style={{
+              background: "#4CAF50",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "4px",
+              marginTop: "10px",
+              cursor: "pointer"
+            }}
+          >
+            Enable
+          </button>
+          <button 
+            onClick={() => setShowPermissionPrompt(false)}
+            style={{
+              background: "#f44336",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "4px",
+              marginTop: "10px",
+              marginLeft: "10px",
+              cursor: "pointer"
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
       <Canvas
         camera={{
           position: [0, 0, 0],
@@ -380,9 +497,8 @@ export default function PanoramaViewer() {
           height: "100%",
           display: "block",
         }}
-        dpr={1} // Lock pixel ratio to 1 for better performance
+        dpr={1}
         onCreated={({ gl }) => {
-          // Force the renderer to use the full window size
           gl.setSize(width, height);
         }}
       >
