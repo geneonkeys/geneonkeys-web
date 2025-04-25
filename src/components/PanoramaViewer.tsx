@@ -1,5 +1,5 @@
-import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
+import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { useEffect, useState, useRef } from "react";
 
@@ -13,11 +13,90 @@ const SOURCES = [
   "Ashberry_Tyler20-R2_Homesite98_Kitchen_360",
   "Ashberry_Tyler20-R2_Homesite98_PrimaryBath_360",
 ];
-const SOURCE_LENGTH = SOURCES.length, SOURCE_LAST_INDEX = SOURCE_LENGTH - 1;
+
+// Function to generate random positions for nodes
+function generateRandomPositions() {
+  return SOURCES.map(() => {
+    // Generate random spherical coordinates
+    const phi = Math.random() * Math.PI * 2; // Random angle around Y axis (0 to 2π)
+    const theta = Math.random() * Math.PI; // Random angle from top to bottom (0 to π)
+    const radius = 3 + Math.random() * 2; // Random distance (3 to 5)
+
+    // Convert spherical to cartesian coordinates
+    const x = radius * Math.sin(theta) * Math.cos(phi);
+    const y = radius * Math.sin(theta) * Math.sin(phi);
+    const z = radius * Math.cos(theta);
+
+    return [x, y, z] as [number, number, number];
+  });
+}
 
 interface PanoramaProps {
   onProgress: (progress: number) => void;
   sourceIndex: number;
+  brightness: number;
+}
+
+interface NavigationNodeProps {
+  position: [number, number, number];
+  name: string;
+  index: number;
+  currentIndex: number;
+  previousIndex: number;
+  onClick: (index: number) => void;
+}
+
+function NavigationNode({ position, name, index, currentIndex, previousIndex, onClick }: NavigationNodeProps) {
+  const [hovered, setHovered] = useState(false);
+  const sphereRef = useRef<THREE.Mesh>(null);
+
+  // Determine node color based on its state
+  const getNodeColor = () => {
+    if (index === currentIndex) return "#4CAF50"; // Current node - green
+    if (index === previousIndex) return "#FFC107"; // Previous node - amber
+    return "#2196F3"; // Other nodes - blue
+  };
+
+  // Pulse animation for the current node
+  useFrame(({ clock }) => {
+    if (sphereRef.current && index === currentIndex) {
+      const scale = 1 + Math.sin(clock.getElapsedTime() * 2) * 0.1;
+      sphereRef.current.scale.set(scale, scale, scale);
+    }
+  });
+
+  return (
+    <group position={position}>
+      <mesh
+        ref={sphereRef}
+        onClick={() => onClick(index)}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+      >
+        <sphereGeometry args={[0.2, 16, 16]} />
+        <meshBasicMaterial
+          color={getNodeColor()}
+          transparent={true}
+          opacity={hovered ? 0.8 : 0.5}
+        />
+      </mesh>
+
+      {hovered && (
+        <Html position={[0, 0.4, 0]} center>
+          <div style={{
+            background: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            padding: '5px 10px',
+            borderRadius: '4px',
+            fontSize: '14px',
+            whiteSpace: 'nowrap'
+          }}>
+            {name}
+          </div>
+        </Html>
+      )}
+    </group>
+  );
 }
 
 function PanoramaControls() {
@@ -33,13 +112,14 @@ function PanoramaControls() {
       enablePan={false}
       enableDamping={true}
       rotateSpeed={0.5}
+      reverseOrbit={true}
       target={[0, 0, -0.1]}
       makeDefault
     />
   );
 }
 
-function Panorama({ onProgress, sourceIndex }: PanoramaProps) {
+function Panorama({ onProgress, sourceIndex, brightness }: PanoramaProps) {
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
   const { scene } = useThree();
 
@@ -77,11 +157,46 @@ function Panorama({ onProgress, sourceIndex }: PanoramaProps) {
   return (
     <>
       {texture && (
-        <mesh rotation={[0, Math.PI, 0]}>
+        <mesh>
           <sphereGeometry args={[5, 64, 32]} />
-          <meshBasicMaterial map={texture} side={THREE.BackSide} />
+          <meshBasicMaterial
+            map={texture}
+            side={THREE.BackSide}
+            toneMapped={false}
+            color={new THREE.Color(brightness, brightness, brightness)}
+          />
         </mesh>
       )}
+    </>
+  );
+}
+
+function NavigationNodes({
+  currentIndex,
+  previousIndex,
+  onSelectNode,
+  nodePositions
+}: {
+  currentIndex: number,
+  previousIndex: number,
+  onSelectNode: (index: number) => void,
+  nodePositions: [number, number, number][]
+}) {
+  return (
+    <>
+      {SOURCES.map((source, index) => {
+        return (index == currentIndex ? null :
+          <NavigationNode
+            key={index}
+            position={nodePositions[index]}
+            name={source}
+            index={index}
+            currentIndex={currentIndex}
+            previousIndex={previousIndex}
+            onClick={onSelectNode}
+          />
+        )
+      })}
     </>
   );
 }
@@ -118,17 +233,30 @@ function useFullScreenSize() {
 
 export default function PanoramaViewer() {
   const [sourceIndex, setSourceIndex] = useState(0);
+  const [previousIndex, setPreviousIndex] = useState(-1);
   const [loadProgress, setLoadProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(true);
+  const [brightnessPercent, setBrightnessPercent] = useState(100);
+  const [nodePositions, setNodePositions] = useState<[number, number, number][]>(generateRandomPositions());
   const containerRef = useRef<HTMLDivElement>(null);
   const { width, height } = useFullScreenSize();
-  function handleNextSourceIndex() {
-    if (sourceIndex != SOURCE_LAST_INDEX) {
-      const currentSourceIndex = sourceIndex;
-      setSourceIndex(currentSourceIndex + 1);
-    } else {
-      setSourceIndex(0);
-    }
+
+  // Convert brightness percentage to actual brightness value (capped at 1.8)
+  const MAX_BRIGHTNESS = 1.8;
+  const MIN_BRIGHTNESS = 0.8;
+  const brightness = MIN_BRIGHTNESS + (brightnessPercent / 100) * (MAX_BRIGHTNESS - MIN_BRIGHTNESS);
+
+  function handleSelectNode(index: number) {
+    setPreviousIndex(sourceIndex);
+    setSourceIndex(index);
+    setShowProgress(true);
+
+    // Generate new random positions for all nodes
+    setNodePositions(generateRandomPositions());
+  }
+
+  function handleBrightnessChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setBrightnessPercent(parseInt(e.target.value));
   }
 
   useEffect(() => { }, [loadProgress, showProgress])
@@ -167,11 +295,73 @@ export default function PanoramaViewer() {
         boxSizing: "border-box", // Ensure borders don't affect dimensions
       }}
     >
-      <button onClick={handleNextSourceIndex}>
-        {`[ ${sourceIndex + 1} / ${SOURCE_LENGTH} ] ${SOURCES[
-          sourceIndex
-        ]}`}
-      </button>
+      <div style={{
+        position: "absolute",
+        top: "10px",
+        left: "10px",
+        zIndex: 1001,
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        background: "rgba(0,0,0,0.5)",
+        padding: "10px",
+        borderRadius: "5px"
+      }}>
+        <div style={{ color: "white" }}>
+          {`Current view: ${SOURCES[sourceIndex]}`}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "white" }}>
+          <label htmlFor="brightness">Brightness:</label>
+          <input
+            id="brightness"
+            type="range"
+            min="1"
+            max="100"
+            step="1"
+            value={brightnessPercent}
+            onChange={handleBrightnessChange}
+            style={{ width: "150px" }}
+          />
+          <span>{brightnessPercent}%</span>
+        </div>
+      </div>
+
+      <div style={{
+        position: "absolute",
+        bottom: "10px",
+        left: "10px",
+        zIndex: 1001,
+        background: "rgba(0,0,0,0.5)",
+        padding: "10px",
+        borderRadius: "5px",
+        color: "white"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+          <span style={{ display: "inline-block", width: "12px", height: "12px", backgroundColor: "#FFC107", borderRadius: "50%" }}></span>
+          <span>Previous location</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+          <span style={{ display: "inline-block", width: "12px", height: "12px", backgroundColor: "#2196F3", borderRadius: "50%" }}></span>
+          <span>Other locations</span>
+        </div>
+      </div>
+
+      {showProgress && loadProgress < 100 && (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "rgba(0,0,0,0.7)",
+          color: "white",
+          padding: "20px",
+          borderRadius: "8px",
+          zIndex: 1002
+        }}>
+          Loading... {loadProgress}%
+        </div>
+      )}
 
       <Canvas
         camera={{
@@ -197,7 +387,13 @@ export default function PanoramaViewer() {
         }}
       >
         <PanoramaControls />
-        <Panorama sourceIndex={sourceIndex} onProgress={handleProgress} />
+        <Panorama sourceIndex={sourceIndex} onProgress={handleProgress} brightness={brightness} />
+        <NavigationNodes
+          currentIndex={sourceIndex}
+          previousIndex={previousIndex}
+          onSelectNode={handleSelectNode}
+          nodePositions={nodePositions}
+        />
       </Canvas>
     </div>
   );
